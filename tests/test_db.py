@@ -54,15 +54,34 @@ def test_stats_math(conn):
 
 def test_machine_health(conn):
     insert_brew(conn, 4, "espresso", "2026-06-01 08:00:00", 27.0, 92.0, "csv")
+    insert_brew(conn, 4, "espresso", "2026-06-01 09:00:00", 26.0, 91.5, "csv")
+    insert_brew(conn, 4, "latte", "2026-06-01 10:00:00", 44.0, 88.0, "csv")
     insert_maintenance(conn, 4, "descale", "2026-06-03 18:00:00", note="quarterly descale")
     insert_maintenance(conn, 4, "error", "2026-06-04 09:15:00", error_code="E42")
     conn.commit()
 
     health = get_machine_health(conn, 4)
-    assert health["brew_count"] == 1
-    assert health["last_brew"] == "2026-06-01 08:00:00"
+    assert health["brew_count"] == 3
+    assert health["last_brew"] == "2026-06-01 10:00:00"
+    assert health["specialty"]["key"] == "espresso"
+    assert health["specialty"]["label"] == "Espresso"
     assert health["last_maintenance"]["type"] == "descale"
     assert health["recent_errors"][0]["error_code"] == "E42"
+
+
+def test_machine_health_no_brews(conn):
+    health = get_machine_health(conn, 1)
+    assert health["brew_count"] == 0
+    assert health["specialty"] is None
+
+
+def test_machine_health_tie_break(conn):
+    insert_brew(conn, 2, "americano", "2026-06-01 08:00:00", 27.0, 92.0, "csv")
+    insert_brew(conn, 2, "espresso", "2026-06-01 09:00:00", 26.0, 91.5, "csv")
+    conn.commit()
+
+    health = get_machine_health(conn, 2)
+    assert health["specialty"]["key"] == "americano"
 
 
 def test_machine_health_unknown_machine(conn):

@@ -106,6 +106,20 @@ def get_machine_health(conn: sqlite3.Connection, machine_id: int) -> dict[str, A
         """,
         (machine_id,),
     ).fetchone()
+    # Tie-break on dt.name (the key), matching how ties are broken elsewhere —
+    # not dt.label, which could pick a different winner on a tie.
+    specialty = conn.execute(
+        """
+        SELECT dt.name AS key, dt.label AS label, COUNT(*) AS n
+        FROM brew_events b
+        JOIN drink_types dt ON dt.name = b.drink_type
+        WHERE b.machine_id = ?
+        GROUP BY dt.id
+        ORDER BY n DESC, dt.name ASC
+        LIMIT 1
+        """,
+        (machine_id,),
+    ).fetchone()
     last_maintenance = conn.execute(
         """
         SELECT type, timestamp, note, error_code
@@ -130,6 +144,7 @@ def get_machine_health(conn: sqlite3.Connection, machine_id: int) -> dict[str, A
     return machine | {
         "brew_count": brews["count"],
         "last_brew": brews["last_brew"],
+        "specialty": dict(specialty) if specialty else None,
         "last_maintenance": dict(last_maintenance) if last_maintenance else None,
         "recent_errors": recent_errors,
     }

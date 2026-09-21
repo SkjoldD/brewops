@@ -114,29 +114,35 @@ main {
   gap: 1.35rem;
 }
 
+/* leader banner: full-width celebration strip above the KPI band */
+.leader-banner {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+
 /* KPI band across the top */
 .stat-tiles {
   grid-column: 1 / -1;
-  grid-row: 1;
+  grid-row: 2;
 }
 
 /* hero row: wide trend chart + a narrower breakdown beside it */
 #dashboard > .panel:has(#timeline) {
   grid-column: 1;
-  grid-row: 2;
+  grid-row: 3;
   display: flex;
   flex-direction: column;
 }
 
 #dashboard > .panel:has(#drink-bars) {
   grid-column: 2;
-  grid-row: 2;
+  grid-row: 3;
 }
 
 /* fleet gallery spans full width below the hero row */
 #dashboard > .panel:has(#machine-cards) {
   grid-column: 1 / -1;
-  grid-row: 3;
+  grid-row: 4;
 }
 
 /* the two logging forms sit side by side under the dashboard */
@@ -243,6 +249,62 @@ main {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--ink-soft);
+}
+
+/* ---- leader banner: 1st place celebration strip ---- */
+.leader-banner {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  padding: 1.3rem 1.6rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--brass-deep);
+  background: linear-gradient(120deg, var(--brass-deep), var(--brass) 45%, var(--crema) 100%);
+  background-size: 200% 100%;
+  box-shadow: var(--shadow-lift);
+  animation: leader-shine 6s ease-in-out infinite;
+}
+
+@keyframes leader-shine {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.leader-banner .trophy {
+  font-size: 2.6rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgb(42 28 18 / 0.35));
+  animation: leader-bounce 2.4s ease-in-out infinite;
+}
+
+@keyframes leader-bounce {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50% { transform: translateY(-6px) rotate(4deg); }
+}
+
+.leader-eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #fff8ee;
+  opacity: 0.85;
+}
+
+.leader-name {
+  margin: 0.15rem 0 0.2rem;
+  font-family: var(--serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff8ee;
+}
+
+.leader-detail {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #fff8ee;
+  opacity: 0.9;
 }
 
 /* ---- per-drink bars: the tasting flight ---- */
@@ -505,6 +567,11 @@ main {
   }
   main {
     padding: 1.5rem 1rem 2.5rem;
+  }
+  .leader-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
   }
   .form-panel form {
     grid-template-columns: 1fr;

@@ -55,6 +55,9 @@ function renderMachineCards(healths) {
   for (const m of healths) {
     const card = document.createElement("div");
     card.className = "card";
+    const specialty = m.specialty
+      ? `<p class="specialty">Specialty: <strong>${m.specialty.label}</strong></p>`
+      : "";
     const maintenance = m.last_maintenance
       ? `${m.last_maintenance.type} on ${m.last_maintenance.timestamp.slice(0, 10)}`
       : "none on record";
@@ -66,11 +69,21 @@ function renderMachineCards(healths) {
     card.innerHTML = `
       <h3>${m.name}</h3>
       <p class="badge">${m.has_telemetry ? "telemetry" : "manual log"}</p>
+      ${specialty}
       <p>${m.brew_count} brews · last ${m.last_brew ? m.last_brew.slice(0, 16) : "never"}</p>
       <p>Last maintenance: ${maintenance}</p>
       ${errors}`;
     container.appendChild(card);
   }
+}
+
+function renderLeaderBanner(healths) {
+  if (healths.length === 0) return;
+  const leader = healths.reduce((best, m) => (m.brew_count > best.brew_count ? m : best));
+  document.getElementById("leader-name").textContent = leader.name;
+  const specialty = leader.specialty ? ` · specialty ${leader.specialty.label}` : "";
+  document.getElementById("leader-detail").textContent =
+    `${leader.brew_count.toLocaleString()} brews${specialty}`;
 }
 
 async function loadDashboard() {
@@ -85,6 +98,7 @@ async function loadDashboard() {
   document.getElementById("machine-count").textContent = machines.length;
   const healths = await Promise.all(machines.map((m) => fetchJSON(`/api/machines/${m.id}`)));
   renderMachineCards(healths);
+  renderLeaderBanner(healths);
 }
 
 // ---- forms ----
