@@ -114,35 +114,88 @@ main {
   gap: 1.35rem;
 }
 
+/* date filter: full-width bar above everything else in the dashboard */
+.filter-panel {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.filter-panel label {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.filter-panel input {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  color: var(--ink);
+  background: #fff;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.filter-panel input:focus {
+  outline: none;
+  border-color: var(--brass);
+  box-shadow: 0 0 0 3px rgb(185 129 47 / 0.22);
+}
+
+.filter-panel button {
+  padding: 0.5rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  color: var(--ink-soft);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+
+.filter-panel button:hover {
+  border-color: var(--brass);
+  color: var(--brass-deep);
+}
+
+.filter-panel button:focus-visible {
+  outline: 3px solid rgb(185 129 47 / 0.5);
+  outline-offset: 2px;
+}
+
 /* leader banner: full-width celebration strip above the KPI band */
 .leader-banner {
   grid-column: 1 / -1;
-  grid-row: 1;
+  grid-row: 2;
 }
 
 /* KPI band across the top */
 .stat-tiles {
   grid-column: 1 / -1;
-  grid-row: 2;
+  grid-row: 3;
 }
 
 /* hero row: wide trend chart + a narrower breakdown beside it */
 #dashboard > .panel:has(#timeline) {
   grid-column: 1;
-  grid-row: 3;
+  grid-row: 4;
   display: flex;
   flex-direction: column;
 }
 
 #dashboard > .panel:has(#drink-bars) {
   grid-column: 2;
-  grid-row: 3;
+  grid-row: 4;
 }
 
 /* fleet gallery spans full width below the hero row */
 #dashboard > .panel:has(#machine-cards) {
   grid-column: 1 / -1;
-  grid-row: 4;
+  grid-row: 5;
 }
 
 /* the two logging forms sit side by side under the dashboard */
@@ -372,6 +425,16 @@ main {
 
 .timeline-bar:hover {
   fill: var(--brass);
+}
+
+.timeline-label {
+  font-size: 9px;
+  fill: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline-peak {
+  font-weight: 600;
 }
 
 /* ---- machine cards: ceramic tiles with a severity stripe ---- */

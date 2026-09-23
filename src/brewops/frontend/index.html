@@ -15,6 +15,14 @@
   <main>
     <!-- Zone 1: dashboard -->
     <section id="dashboard">
+      <div class="panel filter-panel">
+        <label for="filter-from">From</label>
+        <input type="date" id="filter-from">
+        <label for="filter-to">To</label>
+        <input type="date" id="filter-to">
+        <button type="button" id="filter-clear">Clear</button>
+      </div>
+
       <div class="leader-banner">
         <div class="trophy" aria-hidden="true">🏆</div>
         <div class="leader-copy">
@@ -46,7 +54,7 @@
 
       <div class="panel">
         <h2>Brews over time</h2>
-        <svg id="timeline" viewBox="0 0 600 130" preserveAspectRatio="none" role="img"
+        <svg id="timeline" viewBox="0 0 600 150" preserveAspectRatio="none" role="img"
              aria-label="Brews per day"></svg>
       </div>
 

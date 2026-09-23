@@ -118,3 +118,33 @@ def test_post_maintenance(db):
         "timestamp": "2026-06-06 09:00:00",
     })
     assert r.status == 400
+
+
+def test_stats_with_date_range(db):
+    r = request(app, "GET", "/api/stats?from=2026-06-02&to=2026-06-02")
+    assert r.status == 200
+    stats = r.json()
+    assert stats["total_brews"] == 1
+    per_drink = {d["name"]: d["count"] for d in stats["per_drink"]}
+    assert per_drink["latte"] == 1
+    assert per_drink["espresso"] == 0
+
+
+def test_stats_date_range_validation(db):
+    r = request(app, "GET", "/api/stats?from=2026-09-20&to=2026-09-01")
+    assert r.status == 400
+    assert "'from' must be before 'to'" in r.json()["detail"]
+
+
+def test_stats_invalid_date_format(db):
+    r = request(app, "GET", "/api/stats?from=banana")
+    assert r.status == 400
+    assert "unparsable date" in r.json()["detail"]
+
+
+def test_machine_health_with_date_range(db):
+    r = request(app, "GET", "/api/machines/1?from=2026-06-01&to=2026-06-01")
+    assert r.status == 200
+    health = r.json()
+    assert health["brew_count"] == 2
+    assert health["last_maintenance"]["type"] == "descale"

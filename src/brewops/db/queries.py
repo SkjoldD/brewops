@@ -65,60 +65,101 @@ def insert_maintenance(
     return cur.lastrowid
 
 
-def get_stats(conn: sqlite3.Connection) -> dict[str, Any]:
+def _range_where(
+    date_from: str | None, date_to: str | None, prefix: str = "WHERE"
+) -> tuple[str, list[str]]:
+    """Build a SQL fragment + params for an optional [date_from, date_to)
+    range over a `timestamp` column. prefix is "WHERE" for a standalone
+    clause or "AND" to append inside a JOIN's ON clause."""
+    clauses = []
+    params: list[str] = []
+    if date_from is not None:
+        clauses.append("timestamp >= ?")
+        params.append(date_from)
+    if date_to is not None:
+        clauses.append("timestamp < ?")
+        params.append(date_to)
+    if not clauses:
+        return "", []
+    return f" {prefix} " + " AND ".join(clauses), params
+
+
+def get_stats(
+    conn: sqlite3.Connection,
+    date_from: str | None = None,
+    date_to: str | None = None,
+) -> dict[str, Any]:
     """Dashboard numbers: totals, per-drink, per-day."""
-    total = conn.execute("SELECT COUNT(*) AS n FROM brew_events").fetchone()["n"]
+    where_sql, params = _range_where(date_from, date_to)
+    total = conn.execute(
+        f"SELECT COUNT(*) AS n FROM brew_events{where_sql}", params
+    ).fetchone()["n"]
+    
+    join_sql, join_params = _range_where(date_from, date_to, prefix="AND")
     per_drink = [
         dict(r)
         for r in conn.execute(
-            """
+            f"""
             SELECT dt.name, dt.label, COUNT(be.id) AS count
             FROM drink_types dt
-            LEFT JOIN brew_events be ON be.drink_type = dt.name
+            LEFT JOIN brew_events be
+              ON be.drink_type = dt.name {join_sql}
             GROUP BY dt.id
             ORDER BY dt.id
-            """
+            """,
+            join_params,
         )
     ]
+    
     per_day = [
         dict(r)
         for r in conn.execute(
-            """
+            f"""
             SELECT DATE(timestamp) AS day, COUNT(*) AS count
             FROM brew_events
+            {where_sql}
             GROUP BY DATE(timestamp)
             ORDER BY day
-            """
+            """,
+            params,
         )
     ]
     return {"total_brews": total, "per_drink": per_drink, "per_day": per_day}
 
 
-def get_machine_health(conn: sqlite3.Connection, machine_id: int) -> dict[str, Any] | None:
+def get_machine_health(
+    conn: sqlite3.Connection,
+    machine_id: int,
+    date_from: str | None = None,
+    date_to: str | None = None,
+) -> dict[str, Any] | None:
     """Machine card: brew activity plus maintenance history."""
     machine = get_machine(conn, machine_id)
     if machine is None:
         return None
+    
+    range_sql, range_params = _range_where(date_from, date_to, prefix="AND")
+    
     brews = conn.execute(
-        """
+        f"""
         SELECT COUNT(*) AS count, MAX(timestamp) AS last_brew
-        FROM brew_events WHERE machine_id = ?
+        FROM brew_events WHERE machine_id = ? {range_sql}
         """,
-        (machine_id,),
+        (machine_id, *range_params),
     ).fetchone()
     # Tie-break on dt.name (the key), matching how ties are broken elsewhere —
     # not dt.label, which could pick a different winner on a tie.
     specialty = conn.execute(
-        """
+        f"""
         SELECT dt.name AS key, dt.label AS label, COUNT(*) AS n
         FROM brew_events b
         JOIN drink_types dt ON dt.name = b.drink_type
-        WHERE b.machine_id = ?
+        WHERE b.machine_id = ? {range_sql}
         GROUP BY dt.id
         ORDER BY n DESC, dt.name ASC
         LIMIT 1
         """,
-        (machine_id,),
+        (machine_id, *range_params),
     ).fetchone()
     last_maintenance = conn.execute(
         """

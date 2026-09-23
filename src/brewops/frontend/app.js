@@ -26,19 +26,41 @@ function renderDrinkBars(perDrink) {
   }
 }
 
+const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function formatShortDate(isoDate) {
+  const [year, month, day] = isoDate.split("-");
+  return `${MONTH_ABBR[Number(month) - 1]} ${Number(day)}`;
+}
+
+function svgText(x, y, content, extraAttrs) {
+  const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  text.setAttribute("x", x);
+  text.setAttribute("y", y);
+  text.setAttribute("class", "timeline-label");
+  for (const [key, value] of Object.entries(extraAttrs || {})) {
+    text.setAttribute(key, value);
+  }
+  text.textContent = content;
+  return text;
+}
+
 function renderTimeline(perDay) {
   const svg = document.getElementById("timeline");
   svg.innerHTML = "";
   if (perDay.length === 0) return;
   const width = 600;
-  const height = 130;
+  const height = 150;
+  const axisHeight = 20; // reserved at the bottom for x-axis date labels
+  const chartHeight = height - axisHeight;
   const max = Math.max(...perDay.map((d) => d.count));
   const barWidth = width / perDay.length;
+
   perDay.forEach((day, i) => {
-    const barHeight = (day.count / max) * (height - 10);
+    const barHeight = (day.count / max) * (chartHeight - 10);
     const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     rect.setAttribute("x", i * barWidth);
-    rect.setAttribute("y", height - barHeight);
+    rect.setAttribute("y", chartHeight - barHeight);
     rect.setAttribute("width", Math.max(0.5, barWidth - 0.6));
     rect.setAttribute("height", barHeight);
     rect.setAttribute("class", "timeline-bar");
@@ -47,6 +69,20 @@ function renderTimeline(perDay) {
     rect.appendChild(title);
     svg.appendChild(rect);
   });
+
+  // peak-value label, top-left
+  svg.appendChild(svgText(4, 12, `peak ${max}/day`, { class: "timeline-label timeline-peak" }));
+
+  // x-axis date labels: at most 6 evenly-spaced ticks
+  const tickCount = Math.min(6, perDay.length);
+  for (let t = 0; t < tickCount; t++) {
+    const i = tickCount === 1 ? 0 : Math.round((t * (perDay.length - 1)) / (tickCount - 1));
+    const x = i * barWidth + barWidth / 2;
+    const anchor = t === 0 ? "start" : t === tickCount - 1 ? "end" : "middle";
+    svg.appendChild(
+      svgText(x, height - 4, formatShortDate(perDay[i].day), { "text-anchor": anchor })
+    );
+  }
 }
 
 function renderMachineCards(healths) {
@@ -86,8 +122,19 @@ function renderLeaderBanner(healths) {
     `${leader.brew_count.toLocaleString()} brews${specialty}`;
 }
 
+function dateRangeQuery() {
+  const from = document.getElementById("filter-from").value;
+  const to = document.getElementById("filter-to").value;
+  const params = new URLSearchParams();
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
+}
+
 async function loadDashboard() {
-  const stats = await fetchJSON("/api/stats");
+  const query = dateRangeQuery();
+  const stats = await fetchJSON(`/api/stats${query}`);
   document.getElementById("total-brews").textContent = stats.total_brews;
   const lastDay = stats.per_day[stats.per_day.length - 1];
   document.getElementById("brews-today").textContent = lastDay ? lastDay.count : 0;
@@ -96,7 +143,9 @@ async function loadDashboard() {
 
   const machines = await fetchJSON("/api/machines");
   document.getElementById("machine-count").textContent = machines.length;
-  const healths = await Promise.all(machines.map((m) => fetchJSON(`/api/machines/${m.id}`)));
+  const healths = await Promise.all(
+    machines.map((m) => fetchJSON(`/api/machines/${m.id}${query}`))
+  );
   renderMachineCards(healths);
   renderLeaderBanner(healths);
 }
@@ -107,6 +156,12 @@ function localNow() {
   const now = new Date();
   now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
   return now.toISOString().slice(0, 16); // datetime-local format
+}
+
+function localToday() {
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  return now.toISOString().slice(0, 10); // date format
 }
 
 function fillSelect(select, items, valueKey, labelKey) {
@@ -166,8 +221,34 @@ async function submitForm(event, url, messageId, buildPayload) {
   }
 }
 
-loadDashboard().catch((error) => {
-  document.getElementById("total-brews").textContent = "!";
-  console.error("Dashboard failed to load:", error);
-});
+function setupFilter() {
+  const from = document.getElementById("filter-from");
+  const to = document.getElementById("filter-to");
+  const clear = document.getElementById("filter-clear");
+  from.addEventListener("change", () => loadDashboard());
+  to.addEventListener("change", () => loadDashboard());
+  clear.addEventListener("click", () => {
+    from.value = "";
+    to.value = "";
+    loadDashboard();
+  });
+}
+
+async function prefillFilterDefaults() {
+  const stats = await fetchJSON("/api/stats");
+  if (stats.per_day.length > 0) {
+    document.getElementById("filter-from").value = stats.per_day[0].day;
+  }
+  document.getElementById("filter-to").value = localToday();
+}
+
+prefillFilterDefaults()
+  .catch((error) => console.error("Filter prefill failed:", error))
+  .finally(() => {
+    loadDashboard().catch((error) => {
+      document.getElementById("total-brews").textContent = "!";
+      console.error("Dashboard failed to load:", error);
+    });
+  });
 setupForms().catch((error) => console.error("Form setup failed:", error));
+setupFilter();
