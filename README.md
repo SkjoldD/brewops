@@ -9,6 +9,8 @@ SQLite, and a dashboard shows consumption stats and machine health.
 This repo is the hands-on codebase for an agentic-coding workshop. There is nothing
 secret in here — no credentials, no real data, no hidden answers. The coffee is fictional.
 
+Open feature requests and bug reports are tracked as markdown files in [`tickets/`](tickets/).
+
 ## Requirements
 
 - Python 3.11 or newer
